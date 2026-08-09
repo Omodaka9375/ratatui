@@ -7,7 +7,7 @@
 //
 // Include once:
 //   <script type="module" src="…/src/auto.ts" data-ratatui-cms
-import { knob, derive as computed, bind, editable, editableImg, editableVideo, list, draft, mode, scope, localAdapter, restAdapter, githubAdapter, cfAdapter, ipfsAdapter, mountInspector, } from "./index.js";
+import { knob, derive as computed, bind, editable, editableImg, editableVideo, list, draft, mode, scope, localAdapter, restAdapter, githubAdapter, cfAdapter, pinataAdapter, mountInspector, } from "./index.js";
 const CSS = `
   .edit-only { display: none; }
   body[data-mode-editing="on"] .edit-only { display: revert; }
@@ -109,11 +109,13 @@ function resolveAdapter(opts, getStoredToken) {
                 throw new Error("[RatatUI CMS] cf adapter requires data-endpoint (Worker URL)");
             return cfAdapter(opts.endpoint, { token });
         case "ipfs":
-            if (!opts.pinEndpoint || !opts.pointerUrl)
-                throw new Error("[RatatUI CMS] ipfs adapter requires data-pin-endpoint and data-pointer-url");
-            return ipfsAdapter({
-                pinEndpoint: opts.pinEndpoint, pointerUrl: opts.pointerUrl,
-                gateway: opts.gateway, token,
+        case "pinata":
+            if (!opts.pinataName && !opts.name)
+                throw new Error("[RatatUI CMS] pinata adapter requires data-pinata-name");
+            return pinataAdapter({
+                name: opts.pinataName || opts.name,
+                jwt: token,
+                gateway: opts.gateway,
             });
         case "rest":
             if (!opts.endpoint)
@@ -419,8 +421,7 @@ export async function autocms(userOptions = {}) {
         ghToken: tag?.dataset.ghToken || null,
         ghBranch: tag?.dataset.ghBranch || "main",
         token: tag?.dataset.token || null,
-        pinEndpoint: tag?.dataset.pinEndpoint || null,
-        pointerUrl: tag?.dataset.pointerUrl || null,
+        pinataName: tag?.dataset.pinataName || null,
         gateway: tag?.dataset.gateway || undefined,
         ...userOptions,
     };
@@ -475,7 +476,7 @@ export async function autocms(userOptions = {}) {
     // CMS bar (gated)
     const gated = opts.gate === "always" || location.hash.includes("edit");
     if (gated) {
-        const remoteAdapters = ["github", "cf", "ipfs", "rest"];
+        const remoteAdapters = ["github", "cf", "ipfs", "pinata", "rest"];
         const needsToken = opts.adapter ? remoteAdapters.includes(opts.adapter) : !!opts.endpoint;
         const tokenCtl = needsToken
             ? { tokenKey, hasToken: () => !!(opts.token || opts.ghToken || getStoredToken()) }

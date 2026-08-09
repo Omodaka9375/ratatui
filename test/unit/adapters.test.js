@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { restAdapter, githubAdapter, cfAdapter, ipfsAdapter } from '../../src/adapters.js';
+import { restAdapter, githubAdapter, cfAdapter, pinataAdapter } from '../../src/adapters.js';
 
 // Minimal Response-like stub
 const res = (status, body = {}, headers = {}) => ({
@@ -60,21 +60,37 @@ describe('TokenSource: lazy token resolution', () => {
     expect(fetchImpl.mock.calls[1][1].headers.Authorization).toBeUndefined();
   });
 
-  it('ipfsAdapter resolves token lazily on pin and pointer calls', async () => {
+  it('pinataAdapter uploads via v3 multipart and resolves the JWT lazily', async () => {
     let token = null;
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(res(200, { cid: 'bafy1' }))  // pin
-      .mockResolvedValueOnce(res(200, {}));                // pointer update
-    const adapter = ipfsAdapter({
-      pinEndpoint: 'https://pin.example.com/pin',
-      pointerUrl: 'https://pin.example.com/pointer',
-      token: () => token,
-      fetchImpl,
-    });
+    const fetchImpl = vi.fn().mockResolvedValue(res(200, { data: { cid: 'bafy1' } }));
+    const adapter = pinataAdapter({ name: 'home', jwt: () => token, fetchImpl });
 
-    token = 'pin-key';
-    await adapter.persist({ a: 1 }, { version: null, label: 't' });
-    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer pin-key');
-    expect(fetchImpl.mock.calls[1][1].headers.Authorization).toBe('Bearer pin-key');
+    token = 'jwt-abc';
+    const out = await adapter.persist({ a: 1 }, { version: null, label: 't' });
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe('https://uploads.pinata.cloud/v3/files');
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe('Bearer jwt-abc');
+    expect(init.body).toBeInstanceOf(FormData); // multipart, no manual Content-Type
+    expect(out.version).toBe('bafy1');
+  });
+
+  it('pinataAdapter loads latest file by name then reads the CID from the gateway', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(res(200, { data: { files: [{ cid: 'bafyX' }] } })) // list
+      .mockResolvedValueOnce(res(200, { title: 'Hi' }));                          // gateway read
+    const adapter = pinataAdapter({ name: 'home', jwt: 'jwt', fetchImpl });
+
+    const got = await adapter.load();
+    expect(fetchImpl.mock.calls[0][0]).toBe('https://api.pinata.cloud/v3/files/public?name=home&order=DESC&limit=1');
+    expect(fetchImpl.mock.calls[1][0]).toBe('https://gateway.pinata.cloud/ipfs/bafyX');
+    expect(got.snapshot).toEqual({ title: 'Hi' });
+    expect(got.version).toBe('bafyX');
+  });
+
+  it('pinataAdapter returns null when no file matches the name', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(res(200, { data: { files: [] } }));
+    const adapter = pinataAdapter({ name: 'missing', jwt: 'jwt', fetchImpl });
+    expect(await adapter.load()).toBeNull();
   });
 });

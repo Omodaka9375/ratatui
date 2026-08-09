@@ -30,10 +30,11 @@ export declare function cfAdapter(workerUrl: string, options?: {
     token?: TokenSource;
     fetchImpl?: typeof fetch;
 }): Adapter;
-export declare function ipfsAdapter(opts: {
-    pinEndpoint: string;
-    pointerUrl: string;
+export declare function pinataAdapter(opts: {
+    name: string;
+    jwt?: TokenSource;
     gateway?: string;
-    token?: TokenSource;
+    network?: "public" | "private";
     fetchImpl?: typeof fetch;
 }): Adapter;
+export declare const ipfsAdapter: typeof pinataAdapter;

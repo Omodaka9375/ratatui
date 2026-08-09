@@ -13,7 +13,7 @@ export { list } from "./list.js";
 export { show, swap, clone } from "./show.js";
 export { router } from "./router.js";
 export { remote } from "./remote.js";
-export { localAdapter, restAdapter, githubAdapter, cfAdapter, ipfsAdapter } from "./adapters.js";
+export { localAdapter, restAdapter, githubAdapter, cfAdapter, pinataAdapter, ipfsAdapter } from "./adapters.js";
 export { mountInspector } from "./inspector.js";
 export { flushSync, batch, activeBindings } from "./scheduler.js";
 export { registry } from "./registry.js";

@@ -610,7 +610,7 @@
       <button class="apill active" data-tab="localStorage">localStorage</button>
       <button class="apill" data-tab="github">GitHub</button>
       <button class="apill" data-tab="cf">Cloudflare KV</button>
-      <button class="apill" data-tab="ipfs">IPFS</button>
+      <button class="apill" data-tab="pinata">IPFS · Pinata</button>
       <button class="apill" data-tab="rest">REST</button>
     </div>
 
@@ -619,7 +619,7 @@
       <pre class="apanel" data-panel="localStorage"><code></code></pre>
       <pre class="apanel" data-panel="github" hidden><code></code></pre>
       <pre class="apanel" data-panel="cf" hidden><code></code></pre>
-      <pre class="apanel" data-panel="ipfs" hidden><code></code></pre>
+      <pre class="apanel" data-panel="pinata" hidden><code></code></pre>
       <pre class="apanel" data-panel="rest" hidden><code></code></pre>
     </div>
   </section>
@@ -696,12 +696,12 @@
   data-ratatui-cms data-adapter="cf"
   data-endpoint="https://cms.you.workers.dev/content"
   data-token="my-secret" data-gate="always"><\/script>`,
-      ipfs:
+      pinata:
 `<script type="module" src="ratatui-cms.min.js"
-  data-ratatui-cms data-adapter="ipfs"
-  data-pin-endpoint="https://pin.example.com/pin"
-  data-pointer-url="https://pin.example.com/pointer/page"
-  data-token="my-pin-key" data-gate="always"><\/script>`,
+  data-ratatui-cms data-adapter="pinata"
+  data-pinata-name="my-page"
+  data-gate="always"><\/script>
+<!-- JWT entered via the CMS bar key field — never in the HTML -->`,
       rest:
 `<script type="module" src="ratatui-cms.min.js"
   data-ratatui-cms data-adapter="rest"

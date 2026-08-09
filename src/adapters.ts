@@ -181,64 +181,70 @@ export function cfAdapter(
   };
 }
 
-// ── IPFS (via Pinata, web3.storage, or any pinning service) ───────────────────
-// Publishes JSON snapshots as pins. Each publish creates a new CID (version).
-// Load fetches the latest CID from a "pointer" endpoint (your API or DNS TXT).
-// This is content-addressed — no conflict detection (last write wins).
+// ── IPFS via Pinata Cloud (v3 API) ───────────────────────────────────────────
+// Publishes JSON snapshots as public-IPFS uploads. The file `name` is the mutable
+// pointer — load() lists files by name (newest first) and reads that CID from a
+// gateway. Content-addressed, last-write-wins: no conflict detection.
 //
-// pointerUrl: GET returns { cid: "bafy..." }, PUT { cid } updates the pointer.
-// gateway: IPFS gateway to fetch content (default: w3s.link).
+// jwt: a Pinata JWT (Pinata App → API Keys). Needs files:read + files:write scopes.
 
-export function ipfsAdapter(opts: {
-  pinEndpoint: string;     // POST here with JSON body, returns { cid: "..." }
-  pointerUrl: string;      // GET/PUT to track the "current" CID
-  gateway?: string;        // IPFS gateway for reads (default: w3s.link)
-  token?: TokenSource;     // auth for pin + pointer endpoints
+const PINATA_UPLOADS = "https://uploads.pinata.cloud/v3";
+const PINATA_API = "https://api.pinata.cloud/v3";
+
+export function pinataAdapter(opts: {
+  name: string;            // logical pointer name for this page's content (e.g. "home")
+  jwt?: TokenSource;       // Pinata JWT — lazy getter keeps it out of the HTML
+  gateway?: string;        // read gateway (default: https://gateway.pinata.cloud)
+  network?: "public" | "private"; // upload network (default: public)
   fetchImpl?: typeof fetch;
 }): Adapter {
   const {
-    pinEndpoint, pointerUrl, gateway = "https://w3s.link/ipfs",
-    token, fetchImpl = fetch,
+    name, jwt, gateway = "https://gateway.pinata.cloud",
+    network = "public", fetchImpl = fetch,
   } = opts;
-  const hdrs = (): Record<string, string> => {
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    const t = resolveToken(token);
-    if (t) h.Authorization = `Bearer ${t}`;
-    return h;
+
+  const authHdrs = (): Record<string, string> => {
+    const t = resolveToken(jwt);
+    return t ? { Authorization: `Bearer ${t}` } : {};
   };
 
   return {
     async load() {
-      // 1. Get current CID from pointer
-      const ptrRes = await fetchImpl(pointerUrl, { headers: hdrs() });
-      if (ptrRes.status === 404) return null;
-      if (!ptrRes.ok) throw new Error(`[RatatUI] ipfs pointer load: ${ptrRes.status}`);
-      const { cid } = await ptrRes.json();
-      if (!cid) return null;
-      // 2. Fetch content from IPFS gateway
-      const contentRes = await fetchImpl(`${gateway}/${cid}`);
-      if (!contentRes.ok) throw new Error(`[RatatUI] ipfs fetch: ${contentRes.status}`);
-      return { snapshot: await contentRes.json(), version: cid };
+      // 1. Latest file with this name on the target network (last-write-wins)
+      const listRes = await fetchImpl(
+        `${PINATA_API}/files/${network}?name=${encodeURIComponent(name)}&order=DESC&limit=1`,
+        { headers: authHdrs() }
+      );
+      if (listRes.status === 404) return null;
+      if (!listRes.ok) throw new Error(`[RatatUI] pinata list: ${listRes.status}`);
+      const listData = await listRes.json();
+      const file = listData?.data?.files?.[0];
+      if (!file?.cid) return null;
+      // 2. Fetch content by CID from the gateway
+      const contentRes = await fetchImpl(`${gateway}/ipfs/${file.cid}`);
+      if (!contentRes.ok) throw new Error(`[RatatUI] pinata fetch: ${contentRes.status}`);
+      return { snapshot: await contentRes.json(), version: file.cid };
     },
     async persist(snapshot) {
-      // ponytail: no conflict detection — IPFS is content-addressed, last write wins.
-      // Upgrade path: compare CID at pointer before updating.
-      // 1. Pin the content
-      const pinRes = await fetchImpl(pinEndpoint, {
+      const form = new FormData();
+      form.append("network", network);
+      form.append("name", name);
+      form.append(
+        "file",
+        new Blob([JSON.stringify(snapshot)], { type: "application/json" }),
+        `${name}.json`
+      );
+      const res = await fetchImpl(`${PINATA_UPLOADS}/files`, {
         method: "POST",
-        headers: hdrs(),
-        body: JSON.stringify(snapshot),
+        headers: authHdrs(), // no Content-Type — multipart boundary is set automatically
+        body: form,
       });
-      if (!pinRes.ok) throw new Error(`[RatatUI] ipfs pin: ${pinRes.status}`);
-      const { cid } = await pinRes.json();
-      // 2. Update pointer to new CID
-      const ptrRes = await fetchImpl(pointerUrl, {
-        method: "PUT",
-        headers: hdrs(),
-        body: JSON.stringify({ cid }),
-      });
-      if (!ptrRes.ok) throw new Error(`[RatatUI] ipfs pointer update: ${ptrRes.status}`);
-      return { version: cid };
+      if (!res.ok) throw new Error(`[RatatUI] pinata upload: ${res.status}`);
+      const data = await res.json();
+      return { version: data?.data?.cid ?? null };
     },
   };
 }
+
+// Back-compat alias — the Pinata-backed IPFS adapter.
+export const ipfsAdapter = pinataAdapter;

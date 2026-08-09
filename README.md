@@ -111,7 +111,7 @@ Everything is configured with `data-*` attributes on the script tag itself:
 | Attribute | Default | Description |
 |-----------|---------|-------------|
 | `data-gate` | `"hash"` | `"always"` shows the CMS bar always; `"hash"` only when the URL contains `#edit` |
-| `data-adapter` | `localStorage` | `"github"`, `"cf"`, `"ipfs"`, `"rest"`, or omit for localStorage |
+| `data-adapter` | `localStorage` | `"github"`, `"cf"`, `"pinata"`, `"rest"`, or omit for localStorage |
 | `data-endpoint` | — | Server URL for `rest` and `cf` |
 | `data-token` | — | Optional. **Prefer the CMS-bar key field** (see below) so the token never sits in your HTML |
 | `data-storage-key` | `"ratatui:autocms"` | localStorage key (default adapter) |
@@ -131,7 +131,7 @@ Published content loads for everyone either way; only the editing UI is gated. E
 
 Never embed an access token in the page — anyone can view-source and take it. Instead, omit `data-token` entirely and let the CMS bar collect it:
 
-1. Visit `yoursite.com/#edit` with a remote adapter configured (GitHub/CF/IPFS/REST).
+ 1. Visit `yoursite.com/#edit` with a remote adapter configured (GitHub/CF/Pinata/REST).
 2. The bar shows an **access-token field**. Paste your token, hit **Save key**.
 3. The token is stored in **your browser's localStorage only** — namespaced per site (`<storage-key>:token`) — and is sent solely on load/publish requests to your backend.
 
@@ -200,18 +200,18 @@ export default {
 ```
 </details>
 
-### IPFS
+### IPFS (Pinata Cloud)
 
-Pins JSON to any pinning service; tracks the current CID via a pointer URL. Content-addressed — last write wins.
+Publishes each snapshot as a public-IPFS upload via the Pinata v3 API. The file **name acts as the mutable pointer** — load lists files by name (newest first) and reads that CID from a gateway. Content-addressed, last-write-wins.
 
 ```html
 <script type="module" src="ratatui-cms.min.js" data-ratatui-cms
-  data-adapter="ipfs" data-pin-endpoint="https://pin.example.com/pin"
-  data-pointer-url="https://pin.example.com/pointer/my-page"
-  data-token="my-pin-key" data-gate="always"></script>
+  data-adapter="pinata" data-pinata-name="my-page" data-gate="always"></script>
 ```
 
-Pointer endpoint: `GET` returns `{ cid }`, `PUT { cid }` updates it. `data-gateway` overrides the read gateway (default `w3s.link`).
+- `data-pinata-name` — logical name for this page's content (the pointer).
+- **JWT** — get one at Pinata App → API Keys (needs `files:read` + `files:write`). Don't put it in the HTML — enter it once via the CMS bar's key field; it's stored in your browser only.
+- `data-gateway` — optional read gateway (default `https://gateway.pinata.cloud`).
 
 ### REST API
 
@@ -432,7 +432,7 @@ await adapter.persist({ title: 'Hello' }, { version: data.version, label: 'page'
 | `restAdapter(url, opts?)` | REST API with ETag conflicts |
 | `githubAdapter(opts)` | GitHub repo persistence |
 | `cfAdapter(workerUrl, opts?)` | Cloudflare Workers KV |
-| `ipfsAdapter(opts)` | IPFS pinning with pointer tracking |
+| `pinataAdapter(opts)` | IPFS via Pinata Cloud (v3 API) |
 | `mountInspector(parent?)` | Live debug panel |
 | `setErrorHandler(fn)` | Global error hook |
 </details>

@@ -2,6 +2,15 @@
 
 All notable changes to RatatUI. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.4.0
+
+### Breaking
+- **IPFS adapter is now Pinata Cloud (v3 API).** The old generic `pinEndpoint`/`pointerUrl` options are gone. `pinataAdapter({ name, jwt, gateway?, network? })` — the file **name** is the mutable pointer (load lists files by name, newest first, last-write-wins). Script tag: `data-adapter="pinata" data-pinata-name="my-page"` (legacy `data-adapter="ipfs"` still maps to it). `ipfsAdapter` remains as a back-compat alias for `pinataAdapter`.
+
+### Changed
+- Package renamed to **`@omodaka/ratat-ui`** (npm rejected `ratat-ui` — too similar to the existing `ratatui` package). Update your imports: `npm i @omodaka/ratat-ui`, `import … from '@omodaka/ratat-ui'`.
+- Demo moved to root `index.html` (GitHub Pages).
+
 ## 0.3.0 — Unreleased
 
 ### Breaking
