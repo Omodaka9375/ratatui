@@ -5,7 +5,7 @@
 <h1 align="center">RatatUI</h1>
 
 <p align="center">
-  A CMS layer for any static page — and a tiny reactive engine.<br />
+  A CMS layer for any static page and a tiny reactive engine.<br />
   Annotate your HTML, drop in one script tag, and the page edits itself.
 </p>
 
@@ -34,13 +34,13 @@ Two ways to use it:
 - **Zero-JS** — add `data-*` attributes to your HTML, include one `<script>`. A CMS bar appears; click **Edit**, change text/images/theme, click **Publish**. No code written.
 - **Full API** — import `knob`, `bind`, `derive`, and build reactive interfaces programmatically.
 
-> **See it, don't read it.** The [live demo](https://omodaka9375.github.io/ratatui/) is a self-demonstrating page — every element on it is editable, right now. (It's the repo's root `index.html`, served via GitHub Pages.)
+> [Live demo](https://omodaka9375.github.io/ratatui/) is a self-demonstrating page — every element on it is editable.
 
 ---
 
 # For Users
 
-This section is for people who want to add an editable layer to a page — no framework knowledge required.
+This section is for people who want to add an CMS layer to a page — no framework knowledge required.
 
 ## Install
 
