@@ -58,7 +58,7 @@ autocms({ gate: 'always' });
 **Option B — one script tag** (no tooling at all):
 
 ```html
-<script type="module" src="https://unpkg.com/@omodaka/ratat-ui@0.3.0/dist/ratatui-cms.min.js" data-ratatui-cms data-gate="always"></script>
+<script type="module" src="https://unpkg.com/@omodaka/ratat-ui@0.4.0/dist/ratatui-cms.min.js" data-ratatui-cms data-gate="always"></script>
 ```
 
 That's it. With the `data-ratatui-cms` attribute present, the CMS boots itself.
