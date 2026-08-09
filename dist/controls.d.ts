@@ -1,0 +1,11 @@
+import type { Knob, Derived } from "./types.js";
+export declare function slider(el: HTMLInputElement, k: Knob<number>): () => void;
+export declare function textInput(el: HTMLInputElement, k: Knob<string>): () => void;
+export declare function toggle(el: HTMLInputElement, k: Knob<boolean>): () => void;
+export declare function colorInput(el: HTMLInputElement, k: Knob<string>): () => void;
+export declare function select(el: HTMLSelectElement, k: Knob<string | number>): () => void;
+export declare function textarea(el: HTMLTextAreaElement, k: Knob<string>): () => void;
+export declare function numberInput(el: HTMLInputElement, k: Knob<number>): () => void;
+export declare function editable(el: HTMLElement, s: Knob<string>, editing?: Knob<boolean> | Derived<boolean>): () => void;
+export declare function editableImg(el: HTMLImageElement, s: Knob<string>, editing?: Knob<boolean> | Derived<boolean>): () => void;
+export declare function editableVideo(el: HTMLVideoElement | HTMLIFrameElement | HTMLElement, s: Knob<string>, editing?: Knob<boolean> | Derived<boolean>): () => void;

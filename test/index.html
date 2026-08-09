@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RatatUI — Bundle Smoke Test</title>
+  <style>
+    body { font: 14px/1.6 ui-monospace, monospace; padding: 24px; max-width: 560px; }
+    .pass { color: #1a8f3c; } .fail { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <h1 data-edit="headline">Bundle smoke test</h1>
+  <p data-edit="blurb">If you can edit this via the admin bar below, Tier 0 works.</p>
+  <div id="report">Checking bundle…</div>
+
+  <!-- Tier 0: autorun from the BUNDLE ONLY — src/ must not be touched -->
+  <script type="module" src="../dist/ratatui-cms.min.js"
+          data-ratatui-cms data-gate="always"
+          data-storage-key="ratatui:dist-test"></script>
+
+  <!-- Tier 2: import the same file, verify the full API surface -->
+  <script type="module">
+    import * as R from "../dist/ratatui-cms.min.js";
+
+    const required = [
+      "autocms", "signal", "computed", "bind", "draft", "Conflict",
+      "list", "show", "swap", "clone", "scope", "router", "remote",
+      "editable", "slider", "textInput", "toggle", "mode",
+      "localAdapter", "restAdapter", "mountInspector", "flushSync",
+    ];
+    const missing = required.filter((name) => typeof R[name] !== "function" && typeof R[name] !== "object");
+
+    // Behavioral check, not just presence: a signal→bind round trip.
+    let behavioral = false;
+    try {
+      const s = R.signal(1, "smoke");
+      let got = null;
+      R.bind([s], (v) => v * 2, (v) => { got = v; });
+      s.set(21); R.flushSync();
+      behavioral = got === 42;
+    } catch { /* fail below */ }
+
+    const report = document.getElementById("report");
+    if (missing.length === 0 && behavioral) {
+      report.className = "pass";
+      report.textContent = `✓ Bundle OK — ${required.length} exports present, signal round-trip passed.`;
+    } else {
+      report.className = "fail";
+      report.textContent = `✗ FAIL — missing: [${missing.join(", ")}] · behavioral: ${behavioral}`;
+    }
+  </script>
+</body>
+</html>

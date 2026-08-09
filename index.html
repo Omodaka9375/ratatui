@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐻</text></svg>" />
+  <meta name="description" content="RatatUI — a CMS layer for any static page. Zero JS. One script tag. This page is the demo: everything on it is editable." />
+  <meta property="og:title" content="RatatUI — The editable layer for HTML" />
+  <meta property="og:description" content="Add a CMS to any static page with zero JavaScript. This page is the demo — click anything." />
+  <meta property="og:type" content="website" />
+  <title>RatatUI — The editable layer for HTML</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --hue: 258;
+      --accent: hsl(var(--hue) 85% 66%);
+      --accent-2: hsl(calc(var(--hue) + 42) 90% 68%);
+      --accent-soft: hsl(var(--hue) 85% 66% / .14);
+      --accent-line: hsl(var(--hue) 85% 66% / .4);
+      --bg: #06060a;
+      --bg-2: #0b0b13;
+      --card: hsl(240 22% 11% / .55);
+      --card-hover: hsl(240 22% 14% / .65);
+      --border: hsl(0 0% 100% / .09);
+      --text: #f2f3f8;
+      --text-dim: #979db2;
+      --radius: 18px;
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --spring: cubic-bezier(.34, 1.45, .64, 1);
+      --ease: cubic-bezier(.22, .8, .24, 1);
+    }
+    body[data-theme="light"] {
+      --bg: #f5f6fa;
+      --bg-2: #ffffff;
+      --card: hsl(0 0% 100% / .72);
+      --card-hover: hsl(0 0% 100% / .9);
+      --border: hsl(240 25% 25% / .12);
+      --text: #0d0e16;
+      --text-dim: #5a5f73;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 72px; /* room for CMS bar */
+      overflow-x: hidden;
+      transition: background .4s var(--ease), color .4s var(--ease);
+    }
+
+    /* ── aurora backdrop ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      background:
+        radial-gradient(ellipse 55% 45% at 15% 0%, hsl(var(--hue) 85% 60% / .13), transparent 60%),
+        radial-gradient(ellipse 45% 55% at 85% 25%, hsl(calc(var(--hue) + 42) 90% 62% / .09), transparent 60%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, hsl(var(--hue) 85% 55% / .06), transparent 65%);
+      animation: drift 26s ease-in-out infinite alternate;
+      transition: background .4s var(--ease);
+    }
+    @keyframes drift {
+      from { transform: translate3d(-2%, -1%, 0) scale(1); }
+      to   { transform: translate3d(2%, 1.5%, 0) scale(1.06); }
+    }
+
+    /* ── full-bleed backdrop image — hue-rotates with the theme dial ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: -2;
+      background: url('https://images.unsplash.com/photo-1557682250-33bd709cbe85?auto=format&fit=crop&w=2400&q=80') center/cover no-repeat;
+      opacity: .32;
+      filter: hue-rotate(calc((var(--hue) - 258) * 1deg)) saturate(1.05);
+      transition: filter .35s var(--ease);
+      pointer-events: none;
+    }
+    body[data-theme="light"]::after { opacity: .14; }
+
+    ::selection { background: var(--accent-soft); }
+
+    /* ── scroll reveal + springs ── */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
+    .lift { transition: transform .35s var(--spring), border-color .35s var(--ease), background .35s var(--ease), box-shadow .35s var(--ease); }
+    .lift:hover { transform: translateY(-4px); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* ── nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(1rem, 4vw, 2.5rem); height: 62px;
+      background: hsl(var(--hue) 30% 6% / .6);
+      backdrop-filter: blur(18px) saturate(1.5);
+      border-bottom: 1px solid var(--border);
+    }
+    body[data-theme="light"] nav { background: hsl(0 0% 100% / .6); }
+    .logo {
+      font-family: var(--font-display); font-weight: 700; font-size: 1.05rem;
+      letter-spacing: -.02em; color: var(--text); display: flex; align-items: center; gap: .55rem;
+    }
+    .logo .dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 14px var(--accent-line); }
+    nav .links { display: flex; gap: 1.6rem; align-items: center; }
+    nav .links a {
+      color: var(--text-dim); text-decoration: none; font-size: .83rem; font-weight: 500;
+      transition: color .2s;
+    }
+    nav .links a:hover { color: var(--text); }
+    .gh {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .42rem .95rem; border-radius: 99px; font-size: .8rem; font-weight: 600;
+      color: var(--text); text-decoration: none;
+      border: 1px solid var(--border); background: var(--card);
+      transition: transform .3s var(--spring), border-color .25s, background .25s;
+    }
+    .gh:hover { transform: translateY(-2px); border-color: var(--accent-line); }
+
+    /* ── shared section chrome ── */
+    section { padding: 6.5rem clamp(1rem, 5vw, 3rem); max-width: 1120px; margin: 0 auto; }
+    .kicker {
+      font: 500 .72rem/1 var(--mono); text-transform: uppercase; letter-spacing: .16em;
+      color: var(--accent); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .kicker::before { content: ''; width: 22px; height: 1px; background: var(--accent-line); }
+    h2.section-title {
+      font-family: var(--font-display); font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+      font-weight: 700; letter-spacing: -.03em; line-height: 1.08; margin-bottom: .9rem;
+    }
+    .section-desc { color: var(--text-dim); max-width: 540px; margin-bottom: 3rem; font-size: 1.02rem; }
+
+    /* ── hero ── */
+    .hero {
+      min-height: 100svh;
+      display: grid; grid-template-columns: 1.15fr .85fr; align-items: center; gap: 3rem;
+      padding-top: 120px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      font: 500 .74rem/1 var(--mono); letter-spacing: .06em;
+      padding: .5rem .95rem; border-radius: 99px;
+      background: var(--accent-soft); color: var(--accent);
+      border: 1px solid var(--accent-line);
+      margin-bottom: 1.6rem;
+    }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.7rem, 7vw, 5rem);
+      font-weight: 700; letter-spacing: -.035em; line-height: 1.02;
+      margin-bottom: 1.4rem;
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.22rem); color: var(--text-dim);
+      max-width: 520px; margin-bottom: 2.4rem;
+    }
+    .hero-cta { display: flex; gap: .9rem; flex-wrap: wrap; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .55rem;
+      padding: .8rem 1.6rem; border-radius: 12px;
+      font: 600 .92rem var(--font-body); text-decoration: none; cursor: pointer; border: none;
+      transition: transform .3s var(--spring), box-shadow .3s var(--ease), background .25s, border-color .25s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0) scale(.98); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff; box-shadow: 0 6px 26px hsl(var(--hue) 85% 60% / .35);
+      font-family: var(--mono); font-weight: 500; font-size: .88rem;
+    }
+    .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent-line); }
+    .btn.copied { background: var(--accent-soft); color: var(--accent); }
+
+    .hero-visual { display: grid; place-items: center; position: relative; }
+    .hero-img-wrap { position: relative; }
+    .hero-img {
+      width: clamp(180px, 24vw, 260px); aspect-ratio: 1; border-radius: 30px;
+      display: block; border: 1px solid var(--border);
+      box-shadow: 0 24px 70px hsl(var(--hue) 85% 50% / .22);
+      transition: transform .4s var(--spring), box-shadow .4s var(--ease);
+    }
+    .hero-img-wrap:hover .hero-img { transform: rotate(-2deg) scale(1.02); }
+    .drop-hint {
+      position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+      font: 500 .68rem/1 var(--mono); letter-spacing: .05em; white-space: nowrap;
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: 99px;
+      padding: .45rem .9rem; color: var(--text-dim);
+    }
+
+    /* pulsing edit affordance on the hero headline while editing */
+    body[data-mode-editing="on"] .hero-title[data-edit] {
+      outline: 2px dashed hsl(var(--hue) 85% 66% / .55);
+      outline-offset: 10px; border-radius: 10px; cursor: text;
+      animation: editPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes editPulse {
+      0%, 100% { outline-color: hsl(var(--hue) 85% 66% / .2); }
+      50% { outline-color: hsl(var(--hue) 85% 66% / .75); }
+    }
+
+    /* ── stats strip ── */
+    .stats {
+      display: flex; gap: 2.5rem; flex-wrap: wrap; justify-content: center;
+      padding: 1.6rem clamp(1rem, 5vw, 3rem);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      max-width: none;
+    }
+    .stat { font: 500 .82rem var(--mono); color: var(--text-dim); display: flex; align-items: center; gap: .55rem; }
+    .stat b { color: var(--accent); font-weight: 600; }
+
+    /* ── glass card base ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      backdrop-filter: blur(16px) saturate(1.4);
+    }
+
+    /* ── theme playground ── */
+    .theme-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 1.5rem; align-items: stretch; }
+    .theme-panel { padding: 2rem; display: flex; flex-direction: column; gap: 1.7rem; }
+    .ctl-label { font: 500 .72rem/1 var(--mono); text-transform: uppercase; letter-spacing: .13em; color: var(--text-dim); margin-bottom: .7rem; display: block; }
+
+    .hue-row { display: flex; align-items: center; gap: 1.1rem; }
+    .hue-val {
+      font: 600 .9rem var(--mono); color: var(--accent); min-width: 3.2rem; text-align: center;
+      padding: .4rem .6rem; border-radius: 8px; background: var(--accent-soft); border: 1px solid var(--accent-line);
+    }
+    input[type="range"]#hueDial {
+      flex: 1; -webkit-appearance: none; appearance: none; height: 26px; background: transparent; cursor: pointer;
+    }
+    #hueDial::-webkit-slider-runnable-track {
+      height: 10px; border-radius: 6px;
+      background: linear-gradient(90deg, hsl(0 85% 62%), hsl(60 85% 58%), hsl(140 75% 52%), hsl(190 85% 55%), hsl(258 85% 66%), hsl(320 85% 64%), hsl(360 85% 62%));
+      border: 1px solid var(--border);
+    }
+    #hueDial::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); border: 3px solid #fff; margin-top: -8px;
+      box-shadow: 0 3px 12px hsl(var(--hue) 85% 55% / .5); cursor: grab;
+      transition: transform .2s var(--spring);
+    }
+    #hueDial::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    #hueDial::-moz-range-track {
+      height: 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: linear-gradient(90deg, hsl(0 85% 62%), hsl(60 85% 58%), hsl(140 75% 52%), hsl(190 85% 55%), hsl(258 85% 66%), hsl(320 85% 64%), hsl(360 85% 62%));
+    }
+    #hueDial::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; cursor: grab; }
+
+    .swatches { display: flex; gap: .8rem; }
+    .swatch-btn {
+      width: 44px; height: 44px; border-radius: 14px; cursor: pointer;
+      border: 2px solid var(--border);
+      transition: transform .25s var(--spring), border-color .25s, box-shadow .25s;
+    }
+    .swatch-btn:hover { transform: translateY(-3px) scale(1.07); border-color: hsl(0 0% 100% / .4); }
+
+    .seg { display: inline-flex; padding: 4px; gap: 4px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--border); }
+    .seg button {
+      padding: .5rem 1.15rem; border-radius: 9px; border: none; cursor: pointer;
+      font: 600 .82rem var(--font-body); background: transparent; color: var(--text-dim);
+      transition: background .25s, color .25s, transform .25s var(--spring);
+    }
+    .seg button:hover { color: var(--text); }
+    .seg button.active { background: var(--accent); color: #fff; box-shadow: 0 3px 12px hsl(var(--hue) 85% 55% / .35); }
+
+    .theme-preview {
+      padding: 2rem; display: flex; flex-direction: column; justify-content: center; gap: 1rem;
+      overflow: hidden; position: relative;
+    }
+    .tp-blob {
+      position: absolute; width: 220px; height: 220px; border-radius: 50%;
+      background: radial-gradient(circle, var(--accent), transparent 65%);
+      opacity: .25; filter: blur(30px); top: -60px; right: -60px;
+      transition: background .3s;
+    }
+    .tp-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; position: relative; }
+    .tp-text { color: var(--text-dim); font-size: .92rem; position: relative; }
+    .tp-pill {
+      display: inline-flex; align-self: flex-start; padding: .45rem 1rem; border-radius: 99px;
+      background: var(--accent-soft); color: var(--accent); font: 600 .78rem var(--mono);
+      border: 1px solid var(--accent-line); position: relative;
+    }
+
+    /* ── how: code vs live ── */
+    .how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: stretch; }
+    .code-panel { padding: 1.6rem; overflow-x: auto; }
+    .code-panel pre { font: 400 .85rem/1.75 var(--mono); color: var(--text-dim); }
+    .code-panel .tag { color: var(--text); }
+    .tok-attr { color: var(--accent); border-radius: 5px; padding: 1px 4px; transition: background .3s; }
+    .tok-attr.flash { background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent-line); }
+    .live-panel { padding: 1.6rem; display: flex; flex-direction: column; justify-content: center; gap: .9rem; }
+    .play-live {
+      font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; letter-spacing: -.02em;
+      padding: 1.2rem 1.4rem; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--border);
+    }
+    .panel-cap { font: 500 .7rem/1 var(--mono); text-transform: uppercase; letter-spacing: .13em; color: var(--text-dim); margin-bottom: 1rem; }
+
+    /* ── features grid ── */
+    .feat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+    .feat-card { padding: 1.8rem; display: flex; flex-direction: column; gap: .9rem; }
+    .feat-card:hover { border-color: var(--accent-line); background: var(--card-hover); }
+    .feat-icon {
+      width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+      background: var(--accent-soft); border: 1px solid var(--accent-line); font-size: 1.1rem;
+    }
+    .feat-card h3 { font-family: var(--font-display); font-size: 1.12rem; font-weight: 600; letter-spacing: -.01em; }
+    .feat-card p { color: var(--text-dim); font-size: .89rem; }
+    .feat-demo { margin-top: auto; padding-top: 1rem; }
+    .feat-demo .mini {
+      background: var(--bg-2); border: 1px dashed var(--border); border-radius: 12px; padding: 1rem 1.2rem;
+      font-size: .92rem;
+    }
+    .feat-img { width: 100%; height: 130px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); display: block; }
+
+    .mini-list { list-style: none; display: flex; flex-direction: column; gap: .45rem; }
+    .mini-list li {
+      display: flex; align-items: center; gap: .55rem;
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+      padding: .55rem .85rem; font-size: .88rem;
+    }
+    .mini-list li::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    .align-stage {
+      display: flex; height: 74px; background: var(--bg-2);
+      border: 1px solid var(--border); border-radius: 12px; padding: 10px;
+    }
+    .align-stage[data-align="start"]  { justify-content: flex-start; }
+    .align-stage[data-align="center"] { justify-content: center; }
+    .align-stage[data-align="end"]    { justify-content: flex-end; }
+    .align-block {
+      width: 52px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 4px 16px hsl(var(--hue) 85% 55% / .35);
+      transition: all .4s var(--spring);
+    }
+    .align-btns { display: flex; gap: .5rem; margin-top: .7rem; }
+    .align-btns button {
+      flex: 1; padding: .45rem 0; border-radius: 9px; cursor: pointer;
+      background: var(--bg-2); border: 1px solid var(--border); color: var(--text-dim);
+      font: 600 .78rem var(--mono); transition: all .2s var(--ease);
+    }
+    .align-btns button:hover { color: var(--text); border-color: var(--accent-line); }
+    .align-btns button.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+
+    /* ── adapters ── */
+    .adapter-pills { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+    .apill {
+      padding: .55rem 1.15rem; border-radius: 99px; cursor: pointer;
+      background: var(--card); border: 1px solid var(--border); color: var(--text-dim);
+      font: 600 .82rem var(--mono); transition: all .25s var(--spring);
+    }
+    .apill:hover { transform: translateY(-2px); color: var(--text); }
+    .apill.active { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 18px hsl(var(--hue) 85% 55% / .35); }
+    .adapter-panel { padding: 1.6rem; position: relative; }
+    .adapter-panel pre { font: 400 .82rem/1.7 var(--mono); color: var(--text-dim); overflow-x: auto; }
+    .adapter-panel .copy-btn {
+      position: absolute; top: 1rem; right: 1rem;
+      padding: .4rem .9rem; border-radius: 8px; cursor: pointer;
+      background: var(--bg-2); border: 1px solid var(--border); color: var(--text-dim);
+      font: 600 .72rem var(--mono); transition: all .2s;
+    }
+    .adapter-panel .copy-btn:hover { color: var(--text); border-color: var(--accent-line); }
+    .adapter-panel .copy-btn.copied { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+
+    /* ── watch ── */
+    .watch-wrap { max-width: 760px; }
+    .video-frame {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); aspect-ratio: 16/9; background: var(--bg-2);
+      box-shadow: 0 24px 70px hsl(240 40% 3% / .4);
+    }
+    .video-frame iframe { width: 100%; height: 100%; border: none; display: block; }
+    .watch-cap { margin-top: 1rem; font-size: .88rem; color: var(--text-dim); }
+
+    /* ── persist ── */
+    .persist-panel {
+      padding: clamp(2rem, 5vw, 4rem); text-align: center; position: relative; overflow: hidden;
+    }
+    .persist-panel .big {
+      font-family: var(--font-display); font-size: clamp(1.8rem, 4.5vw, 3rem);
+      font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 1rem;
+    }
+    .persist-panel .sub { color: var(--text-dim); max-width: 460px; margin: 0 auto 2rem; }
+    .reset-btn {
+      padding: .7rem 1.5rem; border-radius: 12px; cursor: pointer;
+      background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+      font: 600 .85rem var(--font-body); transition: all .25s var(--spring);
+    }
+    .reset-btn:hover { transform: translateY(-2px); color: #f88; border-color: hsl(0 70% 60% / .5); }
+
+    /* ── edit chip ── */
+    .edit-chip {
+      position: fixed; right: 16px; bottom: 52px; z-index: 9991;
+      display: flex; align-items: center; gap: .5rem;
+      font: 500 .72rem/1 var(--mono); color: var(--text-dim);
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: 99px;
+      padding: .5rem .95rem; backdrop-filter: blur(12px);
+      box-shadow: 0 6px 24px hsl(240 40% 3% / .35);
+    }
+    .edit-chip b { color: var(--accent); font-weight: 600; }
+
+    /* ── footer ── */
+    footer {
+      text-align: center; padding: 3.5rem 1.5rem 2rem; color: var(--text-dim);
+      font-size: .85rem; border-top: 1px solid var(--border);
+    }
+    footer .f-links { display: flex; gap: 1.6rem; justify-content: center; margin-top: .8rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── RatatUI CMS affordances, re-themed ── */
+    .is-editable { outline: 2px dashed var(--accent-line) !important; outline-offset: 3px; border-radius: 6px; cursor: text; }
+    .is-editable:focus { outline-style: solid !important; }
+    .rui-editable-media { outline-color: var(--accent-line) !important; }
+
+    /* ── responsive ── */
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; text-align: center; padding-top: 110px; }
+      .hero-sub { margin-inline: auto; }
+      .hero-cta { justify-content: center; }
+      .hero-visual { order: -1; }
+      .theme-grid, .how-grid, .feat-grid { grid-template-columns: 1fr; }
+      nav .links a:not(.gh) { display: none; }
+      .edit-chip { bottom: 56px; right: 10px; }
+    }
+  </style>
+</head>
+<body data-theme="dark" data-edit-attr="data-theme:theme">
+
+  <!-- ═══ NAV ═══ -->
+  <nav>
+    <span class="logo"><span class="dot"></span><span data-edit="navLogo">RatatUI</span></span>
+    <div class="links">
+      <a href="#theme">Theme</a>
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#adapters">Adapters</a>
+      <a class="gh" href="https://github.com/Omodaka9375/ratatui" target="_blank" rel="noopener">★ Star on GitHub</a>
+    </div>
+  </nav>
+
+  <!-- ═══ HERO ═══ -->
+  <section class="hero">
+    <div>
+      <span class="hero-badge" data-edit="heroBadge">✎ This page is live — click any text to edit it</span>
+      <h1 class="hero-title" data-edit="heroTitle">A CMS layer for any static page.</h1>
+      <p class="hero-sub" data-edit="heroSub">Zero JavaScript required. Annotate your HTML with data attributes, drop in one script tag, and your page edits itself. This page is the proof — everything on it is editable right now.</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" id="copyNpm">$ npm i ratat-ui</button>
+        <a class="btn btn-ghost" href="#how">How it works ↓</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-img-wrap">
+        <img class="hero-img" data-edit-img="heroArt" alt="RatatUI mark"
+             src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='hsl(258,85%,66%)'/><stop offset='1' stop-color='hsl(300,90%,68%)'/></linearGradient></defs><rect width='200' height='200' rx='46' fill='url(%23g)'/><text x='100' y='122' font-size='88' text-anchor='middle' fill='white' font-family='monospace' font-weight='bold'>R.</text></svg>" />
+        <span class="drop-hint">click · paste · drop an image</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ STATS ═══ -->
+  <section class="stats reveal">
+    <span class="stat"><b data-edit="stat1">36 KB</b> raw · 12 KB gzip</span>
+    <span class="stat"><b data-edit="stat2">0</b> runtime dependencies</span>
+    <span class="stat"><b data-edit="stat3">5</b> persistence adapters</span>
+    <span class="stat"><b data-edit="stat4">1</b> script tag to a CMS</span>
+  </section>
+
+  <!-- ═══ THEME PLAYGROUND ═══ -->
+  <section id="theme" class="reveal">
+    <div class="kicker">Live theme</div>
+    <h2 class="section-title" data-edit="themeTitle">Skin this page. Right now.</h2>
+    <p class="section-desc" data-edit="themeDesc">Drag the dial — the entire page re-colors around you. Powered by one data-edit-input piped to a CSS variable. Your choice persists.</p>
+
+    <div class="theme-grid">
+      <div class="card theme-panel">
+        <div>
+          <span class="ctl-label">Accent hue — <code style="color:var(--accent)">data-edit-input + data-css-var</code></span>
+          <div class="hue-row">
+            <input type="range" id="hueDial" min="0" max="360" value="258" data-edit-input="hue" data-css-var="--hue" />
+            <output class="hue-val" id="hueVal">258</output>
+          </div>
+        </div>
+        <div>
+          <span class="ctl-label">Presets</span>
+          <div class="swatches">
+            <button class="swatch-btn" data-hue="258" style="background:linear-gradient(135deg,hsl(258 85% 66%),hsl(300 90% 68%))" title="Ultraviolet"></button>
+            <button class="swatch-btn" data-hue="190" style="background:linear-gradient(135deg,hsl(190 85% 55%),hsl(232 90% 66%))" title="Glacier"></button>
+            <button class="swatch-btn" data-hue="140" style="background:linear-gradient(135deg,hsl(140 75% 52%),hsl(182 80% 56%))" title="Acid"></button>
+            <button class="swatch-btn" data-hue="18"  style="background:linear-gradient(135deg,hsl(18 90% 60%),hsl(60 90% 62%))"  title="Ember"></button>
+          </div>
+        </div>
+        <div>
+          <span class="ctl-label">Mode — <code style="color:var(--accent)">data-edit-attr="data-theme:theme"</code></span>
+          <div class="seg" id="themeSeg">
+            <button data-theme-set="dark" class="active">◐ Dark</button>
+            <button data-theme-set="light">○ Light</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card theme-preview lift">
+        <div class="tp-blob"></div>
+        <span class="tp-pill" data-edit="previewPill">live preview</span>
+        <div class="tp-title" data-edit="previewTitle">Everything follows one hue.</div>
+        <p class="tp-text" data-edit="previewText">Accents, glows, gradients, focus rings — all derived from a single CSS custom property that RatatUI keeps in sync with a signal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ HOW IT WORKS ═══ -->
+  <section id="how" class="reveal">
+    <div class="kicker">How it works</div>
+    <h2 class="section-title" data-edit="howTitle">It's just an attribute.</h2>
+    <p class="section-desc" data-edit="howDesc">No components, no virtual DOM, no build step. Type in the live element on the right and watch the attribute that powers it light up on the left.</p>
+
+    <div class="how-grid">
+      <div class="card code-panel">
+        <div class="panel-cap">Your HTML</div>
+        <pre><code>&lt;p <span class="tok-attr" id="tok-play">data-edit="playground"</span>&gt;
+  <span class="tag">Try me — click and type.</span>
+&lt;/p&gt;
+
+&lt;script type="module"
+  src="ratatui-cms.min.js"
+  data-ratatui-cms&gt;&lt;/script&gt;</code></pre>
+      </div>
+      <div class="card live-panel">
+        <div class="panel-cap">Live element</div>
+        <p class="play-live" id="playLive" data-edit="playground">Try me — click and type.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FEATURES ═══ -->
+  <section id="features" class="reveal">
+    <div class="kicker">Capabilities</div>
+    <h2 class="section-title" data-edit="featTitle">Small API. Real superpowers.</h2>
+    <p class="section-desc" data-edit="featDesc">Every card below is a working demo, not a screenshot. Edit them.</p>
+
+    <div class="feat-grid">
+      <div class="card feat-card lift">
+        <div class="feat-icon">✎</div>
+        <h3 data-edit="f1Title">Inline text</h3>
+        <p data-edit="f1Text">Any element becomes editable with data-edit. Click the line below and rewrite it.</p>
+        <div class="feat-demo"><div class="mini" data-edit="f1Demo">This sentence is editable. Make it yours.</div></div>
+      </div>
+
+      <div class="card feat-card lift">
+        <div class="feat-icon">🖼</div>
+        <h3 data-edit="f2Title">Image swap</h3>
+        <p data-edit="f2Text">data-edit-img — click to paste a URL, or drop an image file straight onto it.</p>
+        <div class="feat-demo">
+          <img class="feat-img" data-edit-img="featureArt" alt="Editable artwork"
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 160'><defs><linearGradient id='h' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='hsl(190,85%55%55)'/><stop offset='1' stop-color='hsl(258,85%25%66)'/></linearGradient></defs><rect width='400' height='160' fill='url(%23h)'/><text x='200' y='92' font-size='30' text-anchor='middle' fill='white' font-family='monospace'>drop an image here</text></svg>" />
+        </div>
+      </div>
+
+      <div class="card feat-card lift">
+        <div class="feat-icon">☰</div>
+        <h3 data-edit="f3Title">Editable lists</h3>
+        <p data-edit="f3Text">data-edit-list renders a keyed collection with add &amp; remove — from a template tag.</p>
+        <div class="feat-demo">
+          <ul class="mini-list" data-edit-list="todos">
+            <template><li><span data-field="task"></span></li></template>
+            <li><span data-field="task">Click a row and edit it</span></li>
+            <li><span data-field="task">Add one with the button below</span></li>
+            <li><span data-field="task">Remove one with ×</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card feat-card lift">
+        <div class="feat-icon">⚡</div>
+        <h3 data-edit="f4Title">Attribute binding</h3>
+        <p data-edit="f4Text">data-edit-attr pipes a signal into any attribute. These buttons set the signal — the block obeys.</p>
+        <div class="feat-demo">
+          <div class="align-stage" data-edit-attr="data-align:alignment" data-align="center">
+            <div class="align-block"></div>
+          </div>
+          <div class="align-btns">
+            <button data-align-set="start">start</button>
+            <button data-align-set="center" class="active">center</button>
+            <button data-align-set="end">end</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ ADAPTERS ═══ -->
+  <section id="adapters" class="reveal">
+    <div class="kicker">Persistence</div>
+    <h2 class="section-title" data-edit="adaptersTitle">Save it anywhere.</h2>
+    <p class="section-desc" data-edit="adaptersDesc">Five backends, one interface. Pick yours — the whole config is the script tag.</p>
+
+    <div class="adapter-pills" id="adapterPills">
+      <button class="apill active" data-tab="localStorage">localStorage</button>
+      <button class="apill" data-tab="github">GitHub</button>
+      <button class="apill" data-tab="cf">Cloudflare KV</button>
+      <button class="apill" data-tab="ipfs">IPFS</button>
+      <button class="apill" data-tab="rest">REST</button>
+    </div>
+
+    <div class="card adapter-panel">
+      <button class="copy-btn" id="copyAdapter">copy</button>
+      <pre class="apanel" data-panel="localStorage"><code></code></pre>
+      <pre class="apanel" data-panel="github" hidden><code></code></pre>
+      <pre class="apanel" data-panel="cf" hidden><code></code></pre>
+      <pre class="apanel" data-panel="ipfs" hidden><code></code></pre>
+      <pre class="apanel" data-panel="rest" hidden><code></code></pre>
+    </div>
+  </section>
+
+  <!-- ═══ WATCH ═══ -->
+  <section id="watch" class="reveal">
+    <div class="kicker">Rich media</div>
+    <h2 class="section-title" data-edit="watchTitle">Video embeds, too.</h2>
+    <p class="section-desc" data-edit="watchDesc">data-edit-video turns a container into an editable embed. Click the player to swap in any YouTube, Vimeo, or direct URL.</p>
+
+    <div class="watch-wrap">
+      <div class="video-frame" data-edit-video="featuredVideo" data-src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></div>
+      <p class="watch-cap" data-edit="watchCap">↑ Click the player while editing to replace it. YouTube &amp; Vimeo URLs auto-convert to embeds.</p>
+    </div>
+  </section>
+
+  <!-- ═══ PERSISTENCE MOMENT ═══ -->
+  <section id="persist" class="reveal">
+    <div class="card persist-panel">
+      <div class="big" data-edit="persistTitle">Reload this page.<br />Your edits are still here.</div>
+      <p class="sub" data-edit="persistDesc">Everything you changed was written to a real persistence layer — on this page, localStorage. Point it at GitHub, KV, IPFS, or your API and it's a real CMS.</p>
+      <button class="reset-btn" id="resetDemo">↺ Reset demo (clear saved edits)</button>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer>
+    <p data-edit="footerText">RatatUI — the editable layer for HTML. MIT licensed.</p>
+    <div class="f-links">
+      <a href="https://github.com/Omodaka9375/ratatui" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Omodaka9375/ratatui/issues" target="_blank" rel="noopener">Issues</a>
+    </div>
+  </footer>
+
+  <div class="edit-chip" id="editChip">✎ <b id="editCount">0</b> edits this session</div>
+
+  <!-- ═══ Page chrome is built with RatatUI too (Tier 2 API) ═══ -->
+  <script type="module">
+    import { autocms, knob, bind } from './dist/ratatui-cms.min.js';
+
+    const STORAGE_KEY = 'ratatui:demo';
+
+    /* ── scroll reveal ── */
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+    /* ── clipboard helper ── */
+    async function copyText(text, btn) {
+      try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable */ }
+      const original = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+    }
+    document.getElementById('copyNpm').addEventListener('click', (e) => copyText('npm i ratat-ui', e.currentTarget));
+
+    /* ── adapter configs ── */
+    const CONFIGS = {
+      localStorage:
+`<script type="module" src="ratatui-cms.min.js"
+  data-ratatui-cms data-gate="always"><\/script>`,
+      github:
+`<script type="module" src="ratatui-cms.min.js"
+  data-ratatui-cms data-adapter="github"
+  data-gh-owner="you" data-gh-repo="my-site"
+  data-gh-path="content/page.json"
+  data-gh-token="ghp_…" data-gate="always"><\/script>`,
+      cf:
+`<script type="module" src="ratatui-cms.min.js"
+  data-ratatui-cms data-adapter="cf"
+  data-endpoint="https://cms.you.workers.dev/content"
+  data-token="my-secret" data-gate="always"><\/script>`,
+      ipfs:
+`<script type="module" src="ratatui-cms.min.js"
+  data-ratatui-cms data-adapter="ipfs"
+  data-pin-endpoint="https://pin.example.com/pin"
+  data-pointer-url="https://pin.example.com/pointer/page"
+  data-token="my-pin-key" data-gate="always"><\/script>`,
+      rest:
+`<script type="module" src="ratatui-cms.min.js"
+  data-ratatui-cms data-adapter="rest"
+  data-endpoint="https://api.example.com/content/home"
+  data-token="bearer-token" data-gate="always"><\/script>`,
+    };
+
+    /* ── adapter tabs — state managed by a RatatUI knob ── */
+    const tab = knob('localStorage', 'adapterTab');
+    const pills = [...document.querySelectorAll('.apill')];
+    const panels = [...document.querySelectorAll('.apanel')];
+    panels.forEach((p) => { p.querySelector('code').textContent = CONFIGS[p.dataset.panel]; });
+    pills.forEach((p) => p.addEventListener('click', () => tab.set(p.dataset.tab)));
+    bind(tab, (v) => v, (v) => {
+      pills.forEach((p) => p.classList.toggle('active', p.dataset.tab === v));
+      panels.forEach((p) => { p.hidden = p.dataset.panel !== v; });
+    }, 'demo:tabs');
+    document.getElementById('copyAdapter').addEventListener('click', (e) => copyText(CONFIGS[tab.get()], e.currentTarget));
+
+    /* ── the CMS itself ── */
+    autocms({
+      gate: 'always',
+      storageKey: STORAGE_KEY,
+      ready(api) {
+        // Start in edit mode — the demo's whole point is instant editing.
+        api.editing.set('on');
+
+        // Dark / light segmented control → the 'theme' signal (bound via data-edit-attr on <body>)
+        const themeBtns = [...document.querySelectorAll('[data-theme-set]')];
+        themeBtns.forEach((b) => b.addEventListener('click', () => api.signals.theme.set(b.dataset.themeSet)));
+        bind(api.signals.theme, (v) => v, (v) => {
+          themeBtns.forEach((b) => b.classList.toggle('active', b.dataset.themeSet === v));
+        }, 'demo:theme');
+
+        // Hue presets drive the real range input, so the change flows through the actual signal
+        const hueDial = document.getElementById('hueDial');
+        document.querySelectorAll('[data-hue]').forEach((s) =>
+          s.addEventListener('click', () => {
+            hueDial.value = s.dataset.hue;
+            hueDial.dispatchEvent(new Event('input'));
+          }));
+        bind(api.signals.hue, (v) => v, (v) => {
+          document.getElementById('hueVal').textContent = Math.round(v);
+        }, 'demo:hueval');
+
+        // Alignment demo buttons → the 'alignment' signal (bound via data-edit-attr on the stage)
+        const alignBtns = [...document.querySelectorAll('[data-align-set]')];
+        alignBtns.forEach((b) => b.addEventListener('click', () => api.signals.alignment.set(b.dataset.alignSet)));
+        bind(api.signals.alignment, (v) => v, (v) => {
+          alignBtns.forEach((b) => b.classList.toggle('active', b.dataset.alignSet === v));
+        }, 'demo:align');
+
+        // Flash the data-edit token in the code panel when the live element is edited
+        const play = document.getElementById('playLive');
+        const tok = document.getElementById('tok-play');
+        play.addEventListener('input', () => {
+          tok.classList.remove('flash');
+          void tok.offsetWidth;
+          tok.classList.add('flash');
+        });
+
+        // Edit counter chip
+        let edits = 0;
+        const countEl = document.getElementById('editCount');
+        document.addEventListener('input', (e) => {
+          if (e.target.closest?.('[data-edit], [data-field]')) {
+            countEl.textContent = ++edits;
+          }
+        });
+
+        // Reset
+        document.getElementById('resetDemo').addEventListener('click', () => {
+          localStorage.removeItem(STORAGE_KEY);
+          location.reload();
+        });
+      },
+    });
+  </script>
+
+</body>
+</html>

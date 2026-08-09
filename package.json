@@ -1,0 +1,58 @@
+{
+  "name": "ratat-ui",
+  "version": "0.3.0",
+  "description": "RatatUI - an editable layer for HTML.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Omodaka9375/ratatui"
+  },
+  "homepage": "https://github.com/Omodaka9375/ratatui#readme",
+  "bugs": {
+    "url": "https://github.com/Omodaka9375/ratatui/issues"
+  },
+  "author": "Branislav Djalic",
+  "keywords": [
+    "reactive",
+    "signals",
+    "cms",
+    "editable",
+    "zero-dependencies",
+    "web-components"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./auto": {
+      "types": "./dist/auto.d.ts",
+      "import": "./dist/auto.js"
+    },
+    "./cms": "./dist/ratatui-cms.min.js",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./dist/auto.js",
+    "./dist/ratatui-cms*.js"
+  ],
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "npx serve .",
+    "test": "vitest run",
+    "check": "tsc --noEmit",
+    "prepublishOnly": "npm run check && npm test && npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0",
+    "happy-dom": "^20.11.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
+  "license": "MIT"
+}
