@@ -1,10 +1,10 @@
 {
-  "name": "ratat-ui",
+  "name": "@omodaka/ratat-ui",
   "version": "0.3.0",
   "description": "RatatUI - an editable layer for HTML.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Omodaka9375/ratatui"
+    "url": "git+https://github.com/Omodaka9375/ratatui.git"
   },
   "homepage": "https://github.com/Omodaka9375/ratatui#readme",
   "bugs": {

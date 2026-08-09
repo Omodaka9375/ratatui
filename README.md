@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/ratat-ui"><img src="https://img.shields.io/npm/v/ratat-ui.svg" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/ratat-ui"><img src="https://img.shields.io/npm/v/@omodaka/ratat-ui.svg" alt="npm version" /></a>
   <img src="https://img.shields.io/badge/size-12%20KB%20gzip-blue" alt="size" />
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="zero dependencies" />
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license" /></a>
@@ -47,18 +47,18 @@ This section is for people who want to add an editable layer to a page — no fr
 **Option A — npm** (bundlers, Vite, etc.):
 
 ```bash
-npm install ratat-ui
+npm install @omodaka/ratat-ui
 ```
 
 ```javascript
-import { autocms } from 'ratat-ui/auto';
+import { autocms } from '@omodaka/ratat-ui/auto';
 autocms({ gate: 'always' });
 ```
 
 **Option B — one script tag** (no tooling at all):
 
 ```html
-<script type="module" src="https://unpkg.com/ratat-ui@0.3.0/dist/ratatui-cms.min.js" data-ratatui-cms data-gate="always"></script>
+<script type="module" src="https://unpkg.com/@omodaka/ratat-ui@0.3.0/dist/ratatui-cms.min.js" data-ratatui-cms data-gate="always"></script>
 ```
 
 That's it. With the `data-ratatui-cms` attribute present, the CMS boots itself.
@@ -258,7 +258,7 @@ The zero-JS layer is sugar over a small reactive core. Everything the CMS does, 
 A reactive value that notifies listeners on change. Validation built in.
 
 ```javascript
-import { knob } from 'ratat-ui';
+import { knob } from '@omodaka/ratat-ui';
 
 const name = knob('Alice', 'username');
 name.get();                  // 'Alice'
@@ -274,7 +274,7 @@ const email = knob('', { pattern: /^.+@.+\..+$/, errorMessage: 'Invalid email' }
 Lazy computed values — recomputed only when a source changes and the value is read. Tuple-typed.
 
 ```javascript
-import { derive } from 'ratat-ui';
+import { derive } from '@omodaka/ratat-ui';
 
 const fullName = derive([firstName, lastName], (f, l) => `${f} ${l}`);
 fullName.get();
@@ -285,7 +285,7 @@ fullName.get();
 Wire sources to effects. Runs once at creation; skips identical outputs. Heterogeneous source arrays infer each transform argument from its source.
 
 ```javascript
-import { bind } from 'ratat-ui';
+import { bind } from '@omodaka/ratat-ui';
 
 bind([name, count], (n, c) => `${n} × ${c}`, text => {
   el.textContent = text;   // n: string, c: number
@@ -299,7 +299,7 @@ bind([name, count], (n, c) => `${n} × ${c}`, text => {
 Group bindings for lifecycle management. One scope per view; wires die with the view.
 
 ```javascript
-import { scope } from 'ratat-ui';
+import { scope } from '@omodaka/ratat-ui';
 
 const s = scope('widget');
 s.bind(count, v => v, v => el.textContent = v);
@@ -353,7 +353,7 @@ list(container, items, (item, rowScope) => {
 Wrap signals in a commit boundary for save/discard/conflict workflows. `dirty`, `status`, and `conflict` are themselves signals you can bind to UI.
 
 ```javascript
-import { draft } from 'ratat-ui';
+import { draft } from '@omodaka/ratat-ui';
 
 const site = draft({ title, body }, adapter.persist, { version: '1' });
 
@@ -376,7 +376,7 @@ Undo/redo: `draftWithHistory({ ... }, persist)` adds `undo()`, `redo()`, `canUnd
 Route internal errors (bindings, derives, scheduler, `onUpdate` hooks) to your own reporting:
 
 ```javascript
-import { setErrorHandler } from 'ratat-ui';
+import { setErrorHandler } from '@omodaka/ratat-ui';
 
 setErrorHandler((error, { label, phase }) => {
   // phase: 'binding' | 'derive' | 'scheduler' | 'hook'
@@ -398,7 +398,7 @@ api.dispose();   // full teardown — safe for SPA unmount / HMR
 ## Programmatic adapters
 
 ```javascript
-import { githubAdapter } from 'ratat-ui';
+import { githubAdapter } from '@omodaka/ratat-ui';
 
 const adapter = githubAdapter({ owner: 'you', repo: 'site', path: 'content/page.json', token: 'ghp_...', branch: 'main' });
 const data = await adapter.load();
@@ -451,11 +451,11 @@ await adapter.persist({ title: 'Hello' }, { version: data.version, label: 'page'
 
 | Entry | What | Notes |
 |-------|------|-------|
-| `ratat-ui` | Core API (`dist/index.js`) | SSR-safe, no DOM at import time |
-| `ratat-ui/auto` | Zero-JS layer (`dist/auto.js`) | `autocms()`; guarded self-run |
-| `ratat-ui/cms` | CDN bundle (`dist/ratatui-cms.min.js`) | Single file, both tiers |
+| `@omodaka/ratat-ui` | Core API (`dist/index.js`) | SSR-safe, no DOM at import time |
+| `@omodaka/ratat-ui/auto` | Zero-JS layer (`dist/auto.js`) | `autocms()`; guarded self-run |
+| `@omodaka/ratat-ui/cms` | CDN bundle (`dist/ratatui-cms.min.js`) | Single file, both tiers |
 
-The package is `sideEffects`-annotated — bundlers tree-shake unused modules from `ratat-ui`.
+The package is `sideEffects`-annotated — bundlers tree-shake unused modules from `@omodaka/ratat-ui`.
 
 ---
 
