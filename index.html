@@ -689,13 +689,14 @@
 `<script type="module" src="ratatui-cms.min.js"
   data-ratatui-cms data-adapter="github"
   data-gh-owner="you" data-gh-repo="my-site"
-  data-gh-path="content/page.json"
-  data-gh-token="ghp_…" data-gate="always"><\/script>`,
+  data-gh-path="content/page.json" data-gate="always"><\/script>
+<!-- token entered via the CMS bar key field — never in the HTML -->`,
       cf:
 `<script type="module" src="ratatui-cms.min.js"
   data-ratatui-cms data-adapter="cf"
   data-endpoint="https://cms.you.workers.dev/content"
-  data-token="my-secret" data-gate="always"><\/script>`,
+  data-gate="always"><\/script>
+<!-- token entered via the CMS bar key field — never in the HTML -->`,
       pinata:
 `<script type="module" src="ratatui-cms.min.js"
   data-ratatui-cms data-adapter="pinata"
@@ -706,7 +707,8 @@
 `<script type="module" src="ratatui-cms.min.js"
   data-ratatui-cms data-adapter="rest"
   data-endpoint="https://api.example.com/content/home"
-  data-token="bearer-token" data-gate="always"><\/script>`,
+  data-gate="always"><\/script>
+<!-- token entered via the CMS bar key field — never in the HTML -->`,
     };
 
     /* ── adapter tabs — state managed by a RatatUI knob ── */

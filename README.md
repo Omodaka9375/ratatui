@@ -103,8 +103,7 @@ Everything is configured with `data-*` attributes on the script tag itself:
   data-adapter="github"
   data-gh-owner="you"
   data-gh-repo="my-site"
-  data-gh-path="content/page.json"
-  data-gh-token="ghp_...">
+  data-gh-path="content/page.json">
 </script>
 ```
 
@@ -113,8 +112,9 @@ Everything is configured with `data-*` attributes on the script tag itself:
 | `data-gate` | `"hash"` | `"always"` shows the CMS bar always; `"hash"` only when the URL contains `#edit` |
 | `data-adapter` | `localStorage` | `"github"`, `"cf"`, `"pinata"`, `"rest"`, or omit for localStorage |
 | `data-endpoint` | — | Server URL for `rest` and `cf` |
-| `data-token` | — | Optional. **Prefer the CMS-bar key field** (see below) so the token never sits in your HTML |
 | `data-storage-key` | `"ratatui:autocms"` | localStorage key (default adapter) |
+
+Tokens are **never** configured via HTML attributes — see [Keeping tokens out of your HTML](#keeping-tokens-out-of-your-html).
 
 ## The `#edit` gate — your `/admin` URL
 
@@ -129,13 +129,13 @@ Published content loads for everyone either way; only the editing UI is gated. E
 
 ## Keeping tokens out of your HTML
 
-Never embed an access token in the page — anyone can view-source and take it. Instead, omit `data-token` entirely and let the CMS bar collect it:
+You cannot embed an access token in the page — RatatUI does not read any token attribute from HTML. The CMS bar collects it on the admin's browser instead:
 
  1. Visit `yoursite.com/#edit` with a remote adapter configured (GitHub/CF/Pinata/REST).
 2. The bar shows an **access-token field**. Paste your token, hit **Save key**.
 3. The token is stored in **your browser's localStorage only** — namespaced per site (`<storage-key>:token`) — and is sent solely on load/publish requests to your backend.
 
-Visitors never receive the token (it's not in the markup), and **Publish is guarded** — if no token is set, the bar flashes the key field instead of firing a doomed request. The legacy `data-token` attribute still works if you choose to embed it, but the bar flow is the recommended path.
+Visitors never receive the token (it's not in the markup), and **Publish is guarded** — if no token is set, the bar flashes the key field instead of firing a doomed request. If a page still carries a legacy `data-token`/`data-gh-token` attribute, it is ignored and a console warning is shown.
 
 ```html
 <!-- No token in the HTML. The bar collects it on the admin's browser. -->
@@ -154,12 +154,12 @@ No config. Data stays in the browser. Great for trying it out.
 
 ### GitHub
 
-Commits a JSON file to a repo via the Contents API. Conflicts detected via blob SHA. Token needs `repo` or `contents:write`.
+Commits a JSON file to a repo via the Contents API. Conflicts detected via blob SHA. The token (needs `repo` or `contents:write`) is entered via the CMS bar key field — never in the HTML.
 
 ```html
 <script type="module" src="ratatui-cms.min.js" data-ratatui-cms
   data-adapter="github" data-gh-owner="you" data-gh-repo="my-site"
-  data-gh-path="content/home.json" data-gh-token="ghp_..." data-gh-branch="main" data-gate="always"></script>
+  data-gh-path="content/home.json" data-gh-branch="main" data-gate="always"></script>
 ```
 
 ### Cloudflare Workers KV
@@ -169,7 +169,7 @@ Points at a Worker that wraps a KV namespace. Conflicts via `X-Version` header.
 ```html
 <script type="module" src="ratatui-cms.min.js" data-ratatui-cms
   data-adapter="cf" data-endpoint="https://cms.you.workers.dev/content"
-  data-token="my-secret" data-gate="always"></script>
+  data-gate="always"></script>
 ```
 
 <details>
@@ -220,7 +220,7 @@ Generic JSON API with ETag conflict detection. Works with any backend.
 ```html
 <script type="module" src="ratatui-cms.min.js" data-ratatui-cms
   data-adapter="rest" data-endpoint="https://api.example.com/content/home"
-  data-token="bearer-token" data-gate="always"></script>
+  data-gate="always"></script>
 ```
 
 Protocol: `GET` returns JSON + `ETag`. `PUT` sends JSON body + `If-Match`. Server returns `409` on conflict.

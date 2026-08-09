@@ -91,9 +91,9 @@ const ce = (e) => {
     }
 };
 function resolveAdapter(opts, getStoredToken) {
-    // Token precedence: explicit data attribute (legacy) → token stored locally in
-    // this browser (entered via the CMS bar). Resolved lazily per request, so the
-    // secret never has to exist in the HTML source.
+    // Tokens come only from this browser's localStorage (entered via the CMS bar)
+    // or a programmatic TokenSource getter passed to autocms(). They are never
+    // read from HTML attributes. Resolved lazily per request.
     const ghToken = opts.ghToken || getStoredToken;
     const token = opts.token || getStoredToken;
     switch (opts.adapter) {
@@ -418,13 +418,18 @@ export async function autocms(userOptions = {}) {
         ghOwner: tag?.dataset.ghOwner || null,
         ghRepo: tag?.dataset.ghRepo || null,
         ghPath: tag?.dataset.ghPath || "content/page.json",
-        ghToken: tag?.dataset.ghToken || null,
+        ghToken: null, // data-gh-token is not read — tokens never come from HTML
         ghBranch: tag?.dataset.ghBranch || "main",
-        token: tag?.dataset.token || null,
+        token: null, // data-token is not read — tokens never come from HTML
         pinataName: tag?.dataset.pinataName || null,
         gateway: tag?.dataset.gateway || undefined,
         ...userOptions,
     };
+    // Deprecated: tokens embedded in HTML are a secret leak — the attribute is ignored.
+    if (tag?.dataset.token || tag?.dataset.ghToken) {
+        console.warn("[RatatUI CMS] data-token / data-gh-token are no longer supported and are ignored. " +
+            "Enter the token once via the CMS bar key field instead — it is stored only in your browser.");
+    }
     const rootScope = scope("autocms");
     // Inject CMS styles
     const style = document.createElement("style");
@@ -480,6 +485,7 @@ export async function autocms(userOptions = {}) {
         const needsToken = opts.adapter ? remoteAdapters.includes(opts.adapter) : !!opts.endpoint;
         const tokenCtl = needsToken
             ? { tokenKey, hasToken: () => !!(opts.token || opts.ghToken || getStoredToken()) }
+            // note: opts.token/ghToken can only be a programmatic getter — HTML attrs are ignored
             : undefined;
         rootScope.add(buildCmsBar(editing, site, tokenCtl));
     }

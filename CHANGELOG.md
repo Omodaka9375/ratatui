@@ -2,6 +2,11 @@
 
 All notable changes to RatatUI. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.5.0
+
+### Breaking
+- **`data-token` / `data-gh-token` HTML attributes are no longer read.** Tokens can only come from the CMS-bar key field (browser localStorage) or a programmatic `TokenSource` getter passed to `autocms()`. A page that still carries the attribute gets a console warning, and the attribute is ignored. Rationale: a token embedded in markup is readable by anyone via view-source.
+
 ## 0.4.0
 
 ### Breaking
