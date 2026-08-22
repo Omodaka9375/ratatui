@@ -556,12 +556,20 @@ export async function autocms(userOptions: Record<string, any> = {}): Promise<Au
   });
   rootScope.add(() => site.dispose());
 
-  // CMS bar (gated)
-  const gated = opts.gate === "always" || location.hash.includes("edit");
+  // CMS bar (gated). The hash gate is a UX convenience — not a security boundary.
+  // Remote adapters still require a token to persist changes (see Publish guard below).
+  const gated = opts.gate === "always" || /#edit(\b|$)/.test(location.hash);
   if (gated) {
     const remoteAdapters = ["github", "cf", "ipfs", "pinata", "rest"];
-    const needsToken = opts.adapter ? remoteAdapters.includes(opts.adapter) : !!opts.endpoint;
-    const tokenCtl = needsToken
+    const isRemote = opts.adapter ? remoteAdapters.includes(opts.adapter) : !!opts.endpoint;
+    if (!isRemote && opts.gate === "hash") {
+      console.warn(
+        "[RatatUI CMS] Using localAdapter with the #edit hash gate. " +
+        "Anyone who discovers the URL can modify and persist content. " +
+        "For production, use a remote adapter (github, rest, cf, pinata) with a token."
+      );
+    }
+    const tokenCtl = isRemote
       ? { tokenKey, hasToken: () => !!(opts.token || opts.ghToken || getStoredToken()) }
       // note: opts.token/ghToken can only be a programmatic getter — HTML attrs are ignored
       : undefined;

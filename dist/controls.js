@@ -239,6 +239,16 @@ function toEmbedUrl(url) {
     const vmMatch = url.match(/vimeo\.com\/(\d+)/);
     if (vmMatch)
         return `https://player.vimeo.com/video/${vmMatch[1]}`;
-    // Already an embed URL or direct video — pass through
+    // Already an embed URL or direct video — pass through after validation.
+    // Reject dangerous URL schemes (data:, javascript:, blob without http origin, etc.)
+    const lower = url.trim().toLowerCase();
+    if (/^(https?:)\/\//i.test(lower))
+        return url;
+    if (/^(data|javascript|blob|vbscript):/i.test(lower)) {
+        console.warn(`[RatatUI] editableVideo: rejected dangerous URL scheme in "${url.slice(0, 80)}"`);
+        return "";
+    }
+    // Unknown scheme — warn but pass through (e.g. ipfs://, magnet://)
+    console.warn(`[RatatUI] editableVideo: unexpected URL scheme in "${url.slice(0, 80)}" — passed through`);
     return url;
 }

@@ -22,6 +22,9 @@ const resolveToken = (t?: TokenSource): string | null => {
 // ── localStorage ──────────────────────────────────────────────────────────────
 
 export function localAdapter(storageKey: string): Adapter {
+  // NOTE: localStorage persists data only in this one browser. It has no
+  // authentication — anyone who discovers the #edit URL can modify and publish
+  // content. For production use, prefer a remote adapter (github, rest, cf, pinata).
   return {
     async load() {
       const raw = localStorage.getItem(storageKey);
@@ -43,6 +46,9 @@ export function restAdapter(
   options: { fetchImpl?: typeof fetch; headers?: Record<string, string>; token?: TokenSource } = {}
 ): Adapter {
   const { fetchImpl = fetch, headers = {}, token } = options;
+  if (/^http:\/\//i.test(url) && !/^http:\/\/localhost[/:]/i.test(url) && !/^http:\/\/127\.0\.0\.1[/:]/i.test(url)) {
+    console.warn(`[RatatUI] restAdapter endpoint uses http:// — token transmitted in cleartext. Use https:// in production.`);
+  }
   const hdrs = (): Record<string, string> => {
     const t = resolveToken(token);
     return t ? { ...headers, Authorization: `Bearer ${t}` } : { ...headers };
@@ -92,7 +98,7 @@ export function githubAdapter(opts: {
   fetchImpl?: typeof fetch;
 }): Adapter {
   const { owner, repo, path, token, branch = "main", fetchImpl = fetch } = opts;
-  const api = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const api = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path)}`;
   const hdrs = (): Record<string, string> => {
     const h: Record<string, string> = {
       Accept: "application/vnd.github.v3+json",
@@ -105,7 +111,7 @@ export function githubAdapter(opts: {
 
   return {
     async load() {
-      const res = await fetchImpl(`${api}?ref=${branch}`, { headers: hdrs() });
+      const res = await fetchImpl(`${api}?ref=${encodeURIComponent(branch)}`, { headers: hdrs() });
       if (res.status === 404) return null; // file doesn't exist yet
       if (!res.ok) throw new Error(`[RatatUI] github load: ${res.status}`);
       const json = await res.json();
@@ -149,6 +155,9 @@ export function cfAdapter(
   options: { token?: TokenSource; fetchImpl?: typeof fetch } = {}
 ): Adapter {
   const { token, fetchImpl = fetch } = options;
+  if (/^http:\/\//i.test(workerUrl) && !/^http:\/\/localhost[/:]/i.test(workerUrl) && !/^http:\/\/127\.0\.0\.1[/:]/i.test(workerUrl)) {
+    console.warn(`[RatatUI] cfAdapter endpoint uses http:// — token transmitted in cleartext. Use https:// in production.`);
+  }
   const hdrs = (): Record<string, string> => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
     const t = resolveToken(token);
@@ -202,6 +211,7 @@ export function pinataAdapter(opts: {
     name, jwt, gateway = "https://gateway.pinata.cloud",
     network = "public", fetchImpl = fetch,
   } = opts;
+  const safeNetwork = network === "private" ? "private" : "public";
 
   const authHdrs = (): Record<string, string> => {
     const t = resolveToken(jwt);
@@ -212,7 +222,7 @@ export function pinataAdapter(opts: {
     async load() {
       // 1. Latest file with this name on the target network (last-write-wins)
       const listRes = await fetchImpl(
-        `${PINATA_API}/files/${network}?name=${encodeURIComponent(name)}&order=DESC&limit=1`,
+        `${PINATA_API}/files/${safeNetwork}?name=${encodeURIComponent(name)}&order=DESC&limit=1`,
         { headers: authHdrs() }
       );
       if (listRes.status === 404) return null;
@@ -227,7 +237,7 @@ export function pinataAdapter(opts: {
     },
     async persist(snapshot) {
       const form = new FormData();
-      form.append("network", network);
+      form.append("network", safeNetwork);
       form.append("name", name);
       form.append(
         "file",
