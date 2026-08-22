@@ -2,6 +2,21 @@
 
 All notable changes to RatatUI. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.6.0
+
+### Security
+- **`#edit` hash gate tightened** — now uses anchored regex (`/^#edit(\b|$)/`) instead of `.includes("edit")`. Previously URLs like `#credits` or `#editor` would unlock the CMS bar.
+- **Video URL passthrough hardened** — `toEmbedUrl()` rejects `data:`, `javascript:`, `blob:`, and `vbscript:` URL schemes with a console warning.
+- **Inspector panel** — knob/binding labels rendered via `createElement` + `textContent` instead of `innerHTML` to prevent self-XSS from page-author-controlled labels.
+- **HTTPS enforcement** — `restAdapter` and `cfAdapter` now warn when the endpoint uses `http://` (except localhost), since tokens are transmitted in cleartext.
+- **localAdapter now warns** when gated only by `#edit` hash — no authentication means anyone who discovers the URL can modify and persist content.
+- **GitHub adapter URL encoding** — `owner`, `repo`, `path`, and `branch` are now `encodeURIComponent()`-encoded to prevent path traversal and query injection.
+- **Pinata adapter network validation** — `network` value is now validated against an allowlist (`"public"` / `"private"`), defaulting to `"public"`.
+
+### Fixed
+- Dependency version ranges now reference real, installable versions from the public npm registry.
+- `:scope > template` selector replaced with `children` iteration for broader happy-dom compatibility.
+
 ## 0.5.0
 
 ### Breaking
