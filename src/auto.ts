@@ -254,7 +254,7 @@ function scanEditableList(
     const name = (container as HTMLElement).dataset.editList;
     if (!name) return;
     const existing = [...(container as HTMLElement).children].filter((c) => (c as HTMLElement).tagName !== "TEMPLATE");
-    const tpl = (container as HTMLElement).querySelector(":scope > template") as HTMLTemplateElement;
+    const tpl = [...(container as HTMLElement).children].find((c) => c.tagName === "TEMPLATE") as HTMLTemplateElement;
     const prototype = tpl ? tpl.content.firstElementChild : existing[0]?.cloneNode(true);
     if (!prototype) return console.warn(`[RatatUI CMS] list "${name}" has no items or template.`);
 

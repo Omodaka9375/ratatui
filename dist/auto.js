@@ -209,7 +209,7 @@ function scanEditableList(signals, snap, isEditing, sc) {
         if (!name)
             return;
         const existing = [...container.children].filter((c) => c.tagName !== "TEMPLATE");
-        const tpl = container.querySelector(":scope > template");
+        const tpl = [...container.children].find((c) => c.tagName === "TEMPLATE");
         const prototype = tpl ? tpl.content.firstElementChild : existing[0]?.cloneNode(true);
         if (!prototype)
             return console.warn(`[RatatUI CMS] list "${name}" has no items or template.`);
