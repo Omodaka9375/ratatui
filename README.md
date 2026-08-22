@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/ratat-ui"><img src="https://img.shields.io/npm/v/@omodaka/ratat-ui.svg" alt="npm version" /></a>
-  <img src="https://img.shields.io/badge/size-12%20KB%20gzip-blue" alt="size" />
+  <img src="https://img.shields.io/badge/size-13%20KB%20gzip-blue" alt="size" />
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="zero dependencies" />
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license" /></a>
 </p>
 
 <p align="center">
-  <strong>36 KB raw · 12 KB gzipped · zero dependencies</strong><br />
+  <strong>40 KB raw · 13 KB gzipped · zero dependencies</strong><br />
   <a href="https://omodaka9375.github.io/ratatui/">Live demo</a> · <a href="./CHANGELOG.md">Changelog</a> · <a href="./CONTRIBUTING.md">Contributing</a>
 </p>
 
